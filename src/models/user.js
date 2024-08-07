@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs"
 import mongoose from "mongoose"
 import validator from 'validator'
+import jwt from 'jsonwebtoken'
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -39,8 +40,35 @@ const userSchema = new mongoose.Schema({
                 throw new Error('Age must be a positive number.')
             }
         }
-    }
+    },
+    tokens: [{
+        token: {
+            type: String,
+            required: true,
+        }
+    }]
 })
+
+userSchema.methods.toJSON = function() {
+    const user = this;
+    const userObject = user.toObject();
+
+    delete userObject.password;
+    delete userObject.tokens;
+
+    return userObject
+}
+
+userSchema.methods.generateAuthToken = async function() {
+    const user = this;
+    const token = jwt.sign({ _id: user._id }, 'somesuperhardstringtoguess')
+
+    user.tokens = user.tokens.concat({token})
+
+    await user.save()
+
+    return token
+}
 
 userSchema.statics.findByCredentials = async(email, password) => {
     const user = await User.findOne({email});

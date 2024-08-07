@@ -1,5 +1,5 @@
 import express from 'express'
-
+import auth from '../middleware/auth.js'
 import User from '../models/user.js'
 
 const routes = express.Router()
@@ -7,8 +7,9 @@ const routes = express.Router()
 routes.post('/', async (req, res) => {
         const user = new User(req.body)
         try{
-            const result = await user.save()
-            res.status(201).send(result)
+            const token = await user.generateAuthToken() 
+            
+            res.status(201).send({user, token})
     
         } catch(err) { res.status(400).send(`error! ${err.message}`)}
     })
@@ -16,66 +17,69 @@ routes.post('/', async (req, res) => {
 routes.post('/login', async (req, res) => {
     try{
         const user = await User.findByCredentials(req.body.email, req.body.password)
-        res.status(200).send("Login successfully")
+
+        const token = await user.generateAuthToken() 
+
+        res.status(200).send({user, token})
     }catch(err) {
-        res.status(404).send(err.message)
+        res.status(400).send(err.message)
+    }
+
+})
+
+routes.post('/logout', auth, async (req, res) => {
+    try{
+        req.user.tokens = req.user.tokens.filter(token => token.token !== req.token)
+
+        await req.user.save()
+
+        res.status(200).send(`Logged out successfully`)
+    }catch(err) {
+        res.status(400).send(err.message)
+    }
+
+})
+
+routes.post('/logoutAll', auth, async (req, res) => {
+    try{
+        req.user.tokens = []
+
+        await req.user.save()
+
+        res.status(200).send(`Logged out successfully`)
+    }catch(err) {
+        res.status(400).send(err.message)
     }
 
 })
     
-routes.get('/', async (req, res) => {
-    try{
-        const users = await User.find()
-        res.status(200).send(users)
-    } catch(err) {
-        res.status(500).send(err)
-    }
+routes.get('/me', auth, async (req, res) => {
+    res.status(200).send(req.user)
     
 })
 
-routes.get('/:id', async(req, res) => {
-    try{
-        const user = await User.findById(req.params.id)
-        if(!user) 
-            return res.status(404).send("User does not exist")
-        res.status(200).send(user)
-            
-    } catch(err) {
-        res.status(400).send(err)
-    } 
-})
-
-routes.patch('/:id',async (req, res) => {
+routes.patch('/me', auth, async (req, res) => {
     const updates = Object.keys(req.body)
     const allowedUpdates = ["name", "email", "password", "age"]
     const isValidUpdates = updates.every(update => allowedUpdates.includes(update))
 
     if(!isValidUpdates) return res.status(400).send("Error: Invalid update")
     try{
+        Object.assign(req.user, req.body)
 
-        const user = await User.findById(req.params.id)
-        
-        if(!user) return res.status(404).send('User not found')
+        await req.user.save()
 
-        Object.assign(user, req.body)
-
-        await user.save()
-
-        res.status(200).send(user)
+        res.status(200).send(req.user)
     } catch(err) {
         res.status(400).send(err)
     }
 })
 
-routes.delete('/:id', async (req, res) => {
+routes.delete('/me', auth, async (req, res) => {
     try{
-        const user = await User.findByIdAndDelete(req.params.id)
+        await req.user.remove()
 
-        if(!user) {
-            return res.status(400).send("User does not exist!")
-        }
-
-        res.status(200).send(`Deleted Successfully ${user}`)
+        res.status(200).send(`Deleted Successfully ${req.user}`)
     } catch(err) {
         res.status(500).send(err)
     }
