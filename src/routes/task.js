@@ -15,7 +15,16 @@ routes.post('/', auth, async (req, res) => {
 
 routes.get('/', auth, async (req, res) => {
     try{
-        const tasks = await Task.find({owner: req.user._id})
+        const match = {}
+        if(req.query.completed){
+            match.completed = req.query.completed === 'true'
+        }
+
+        const tasks = await Task.find(match)
+        .limit(req.query.limit)
+        .skip(req.query.skip)
+        .sort({createdAt: req.query.sortBy})
+
         res.status(200).send(tasks)
     } catch(err) {
         res.status(500).send(err)
