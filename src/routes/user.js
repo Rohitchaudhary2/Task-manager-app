@@ -1,6 +1,7 @@
 import express from 'express'
 import auth from '../middleware/auth.js'
 import User from '../models/user.js'
+import Task from '../models/task.js'
 
 const routes = express.Router()
 
@@ -77,11 +78,12 @@ routes.patch('/me', auth, async (req, res) => {
 
 routes.delete('/me', auth, async (req, res) => {
     try{
-        await req.user.remove()
+        await req.user.deleteOne()
 
-        res.status(200).send(`Deleted Successfully ${req.user}`)
+        await Task.deleteMany({owner: req.user._id})
+        res.status(200).send(`Deleted Successfully `)
     } catch(err) {
-        res.status(500).send(err)
+        res.status(500).send(err.message)
     }
 })
 

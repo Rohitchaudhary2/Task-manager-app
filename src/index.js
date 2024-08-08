@@ -1,6 +1,5 @@
 import express from 'express'
 import connectDb from './db/mongoose.js'
-import Task from './models/task.js'
 import userRoute from './routes/user.js'
 import taskRoute from './routes/task.js'
 
@@ -22,3 +21,4 @@ app.use('/tasks', taskRoute)
 app.listen(3000, () => {
     console.log(`Server is running on PORT ${PORT}` )
 })
+

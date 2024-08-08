@@ -13,9 +13,9 @@ routes.post('/', auth, async (req, res) => {
     } catch(err) { res.status(400).send(`error! ${err.message}`)}
 })
 
-routes.get('/', async (req, res) => {
+routes.get('/', auth, async (req, res) => {
     try{
-        const tasks = await Task.find()
+        const tasks = await Task.find({owner: req.user._id})
         res.status(200).send(tasks)
     } catch(err) {
         res.status(500).send(err)
@@ -23,9 +23,9 @@ routes.get('/', async (req, res) => {
     
 })
 
-routes.get('/:id', async(req, res) => {
+routes.get('/:id', auth, async(req, res) => {
     try{
-        const task = await Task.findById(req.params.id)
+        const task = await Task.findOne({_id: req.params.id, owner: req.user._id})
         if(!task) 
             return res.status(404).send("Task does not exist")
         res.status(200).send(task)
@@ -35,14 +35,14 @@ routes.get('/:id', async(req, res) => {
     } 
 })
 
-routes.patch('/:id',async (req, res) => {
+routes.patch('/:id', auth, async (req, res) => {
     const updates = Object.keys(req.body)
     const allowedUpdates = ["description", "completed"]
     const isValidUpdates = updates.every(update => allowedUpdates.includes(update))
 
     if(!isValidUpdates) return res.status(400).send("Error: Invalid update")
     try{
-        const task = await Task.findById(req.params.id)
+        const task = await Task.findOne({ _id: req.params.id, owner: req.user._id})
         if(!task) return res.status(404).send('Task not found')
             
         Object.assign(task, req.body);
@@ -54,9 +54,9 @@ routes.patch('/:id',async (req, res) => {
     }
 })
 
-routes.delete('/:id', async (req, res) => {
+routes.delete('/:id', auth, async (req, res) => {
     try{
-        const task = await Task.findByIdAndDelete(req.params.id)
+        const task = await Task.findOneAndDelete({_id: req.params.id, owner: req.user._id})
 
         if(!task) {
             res.status(400).send("Task does not exist!")
