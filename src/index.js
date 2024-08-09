@@ -1,21 +1,7 @@
-import express from 'express'
-import connectDb from './db/mongoose.js'
-import userRoute from './routes/user.js'
-import taskRoute from './routes/task.js'
+import app from './app.js'
 
 
-const app = express()
-connectDb()
-app.use(express.json())
-
-const PORT = process.env.PORT || 3000
-
-app.use('/users', userRoute)
-
-app.use('/tasks', taskRoute)
-
-
-
+const PORT = process.env.PORT 
 
 
 app.listen(3000, () => {
